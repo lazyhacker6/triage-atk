@@ -47,3 +47,4 @@ Use the issue tracker in this repository to report bugs.
 [olm]: https://github.com/operator-framework/operator-lifecycle-manager
 [quay.io]: https://quay.io/repository/operatorhubio/catalog?tag=latest&tab=tags
 [catalog]: https://k8s-operatorhub.github.io/community-operators/testing-operators/#1-create-the-catalogsource
+<!-- prep baseline trigger; disposable -->
