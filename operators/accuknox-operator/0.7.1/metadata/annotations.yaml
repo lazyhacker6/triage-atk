@@ -12,5 +12,6 @@ annotations:
   com.redhat.openshift.versions: v4.9
 
   # Annotations for testing.
+  # prep: baseline trigger marker
   operators.operatorframework.io.test.mediatype.v1: scorecard+v1
   operators.operatorframework.io.test.config.v1: tests/scorecard/
